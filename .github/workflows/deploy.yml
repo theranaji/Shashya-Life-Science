@@ -1,0 +1,99 @@
+name: Deploy Shashya Life Science Website
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  S3_BUCKET: YOUR_S3_BUCKET_NAME
+  CLOUDFRONT_DISTRIBUTION_ID: YOUR_CLOUDFRONT_DISTRIBUTION_ID
+
+jobs:
+
+  deploy:
+
+    name: Deploy Website to AWS
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ==========================================
+      # 1. Checkout Code
+      # ==========================================
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      # ==========================================
+      # 2. Validate Website Files
+      # ==========================================
+
+      - name: Validate Website Files
+        run: |
+
+          echo "Checking website files..."
+
+          test -f index.html
+          test -f style.css
+          test -f main.js
+
+          echo "All required files are present."
+
+
+      # ==========================================
+      # 3. Configure AWS Credentials
+      # ==========================================
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      # ==========================================
+      # 4. Upload Website to S3
+      # ==========================================
+
+      - name: Deploy Website to S3
+        run: |
+
+          echo "Deploying website to S3..."
+
+          aws s3 sync . \
+            s3://${{ env.S3_BUCKET }} \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "README.md"
+
+          echo "Website successfully uploaded to S3."
+
+
+      # ==========================================
+      # 5. CloudFront Cache Invalidation
+      # ==========================================
+
+      - name: Invalidate CloudFront Cache
+        run: |
+
+          echo "Invalidating CloudFront cache..."
+
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+          echo "CloudFront cache invalidation completed."
