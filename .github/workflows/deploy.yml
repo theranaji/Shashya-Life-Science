@@ -1,25 +1,71 @@
-name: Debug Shashya OIDC
+name: Deploy Shashya Life Science Website
 
 on:
+  push:
+    branches:
+      - main
+
   workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: ap-south-1
+  S3_BUCKET: shashya-life-science-prod
+
 jobs:
-  debug:
+
+  deploy:
+
+    name: Deploy Website to S3
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Show OIDC Claims
-        env:
-          AUDIENCE: "sts.amazonaws.com"
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Website Files
         run: |
-          TOKEN_JSON=$(curl -s \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE")
+          echo "Checking website files..."
 
-          ID_TOKEN=$(echo "$TOKEN_JSON" | jq -r .value)
+          test -f index.html
+          test -f style.css
+          test -f main.js
 
-          echo "$ID_TOKEN" | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq -r
+          echo "All required files are present."
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::927388046799:role/shashya-life-science-prod
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Shashya
+
+      - name: Verify AWS Identity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Deploy Website to S3
+        run: |
+          echo "Deploying website to S3..."
+
+          aws s3 sync . \
+            s3://${{ env.S3_BUCKET }} \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "README.md"
+
+          echo "Deployment completed successfully."
+
+      - name: Verify S3 Deployment
+        run: |
+          echo "Files currently in S3:"
+
+          aws s3 ls s3://${{ env.S3_BUCKET }}/
+
+          echo "S3 deployment verified."
