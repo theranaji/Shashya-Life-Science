@@ -8,38 +8,30 @@ on:
   workflow_dispatch:
 
 permissions:
+  id-token: write
   contents: read
 
 env:
   AWS_REGION: ap-south-1
-  S3_BUCKET: YOUR_S3_BUCKET_NAME
-  CLOUDFRONT_DISTRIBUTION_ID: YOUR_CLOUDFRONT_DISTRIBUTION_ID
+  S3_BUCKET: shashya-life-science-prod
 
 jobs:
 
   deploy:
 
-    name: Deploy Website to AWS
+    name: Deploy Website to S3
 
     runs-on: ubuntu-latest
 
     steps:
 
-      # ==========================================
-      # 1. Checkout Code
-      # ==========================================
-
+      # 1. Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-
-      # ==========================================
-      # 2. Validate Website Files
-      # ==========================================
-
+      # 2. Validate website files
       - name: Validate Website Files
         run: |
-
           echo "Checking website files..."
 
           test -f index.html
@@ -48,29 +40,22 @@ jobs:
 
           echo "All required files are present."
 
-
-      # ==========================================
-      # 3. Configure AWS Credentials
-      # ==========================================
-
+      # 3. Authenticate with AWS using OIDC
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
+          role-to-assume: arn:aws:iam::927388046799:role/shashya-life-science-prod
           aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Shashya
 
+      # 4. Verify AWS authentication
+      - name: Verify AWS Identity
+        run: |
+          aws sts get-caller-identity
 
-      # ==========================================
-      # 4. Upload Website to S3
-      # ==========================================
-
+      # 5. Deploy website to S3
       - name: Deploy Website to S3
         run: |
-
           echo "Deploying website to S3..."
 
           aws s3 sync . \
@@ -80,20 +65,13 @@ jobs:
             --exclude ".github/*" \
             --exclude "README.md"
 
-          echo "Website successfully uploaded to S3."
+          echo "Deployment completed successfully."
 
-
-      # ==========================================
-      # 5. CloudFront Cache Invalidation
-      # ==========================================
-
-      - name: Invalidate CloudFront Cache
+      # 6. Verify deployment
+      - name: Verify S3 Deployment
         run: |
+          echo "Files currently in S3:"
 
-          echo "Invalidating CloudFront cache..."
+          aws s3 ls s3://${{ env.S3_BUCKET }}/
 
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
-
-          echo "CloudFront cache invalidation completed."
+          echo "S3 deployment verified."
