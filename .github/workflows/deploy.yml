@@ -1,77 +1,25 @@
-name: Deploy Shashya Life Science Website
+name: Debug Shashya OIDC
 
 on:
-  push:
-    branches:
-      - main
-
   workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
-env:
-  AWS_REGION: ap-south-1
-  S3_BUCKET: shashya-life-science-prod
-
 jobs:
-
-  deploy:
-
-    name: Deploy Website to S3
-
+  debug:
     runs-on: ubuntu-latest
 
     steps:
-
-      # 1. Checkout code
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      # 2. Validate website files
-      - name: Validate Website Files
+      - name: Show OIDC Claims
+        env:
+          AUDIENCE: "sts.amazonaws.com"
         run: |
-          echo "Checking website files..."
+          TOKEN_JSON=$(curl -s \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE")
 
-          test -f index.html
-          test -f style.css
-          test -f main.js
+          ID_TOKEN=$(echo "$TOKEN_JSON" | jq -r .value)
 
-          echo "All required files are present."
-
-      # 3. Authenticate with AWS using OIDC
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::927388046799:role/shashya-life-science-prod
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-Shashya
-
-      # 4. Verify AWS authentication
-      - name: Verify AWS Identity
-        run: |
-          aws sts get-caller-identity
-
-      # 5. Deploy website to S3
-      - name: Deploy Website to S3
-        run: |
-          echo "Deploying website to S3..."
-
-          aws s3 sync . \
-            s3://${{ env.S3_BUCKET }} \
-            --delete \
-            --exclude ".git/*" \
-            --exclude ".github/*" \
-            --exclude "README.md"
-
-          echo "Deployment completed successfully."
-
-      # 6. Verify deployment
-      - name: Verify S3 Deployment
-        run: |
-          echo "Files currently in S3:"
-
-          aws s3 ls s3://${{ env.S3_BUCKET }}/
-
-          echo "S3 deployment verified."
+          echo "$ID_TOKEN" | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq -r
