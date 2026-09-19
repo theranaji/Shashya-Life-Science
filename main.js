@@ -1,5 +1,5 @@
 /* =========================================================
-   SHASHYA LIFE SCIENCE
+   SHASHYAM LIFE SCIENCE
    Main JavaScript
 ========================================================= */
 
@@ -71,6 +71,16 @@ mobileLinks.forEach(
         link.addEventListener(
             "click",
             function () {
+
+                if (
+                    !mobileNavigation ||
+                    !mobileMenuButton
+                ) {
+
+                    return;
+
+                }
+
 
                 mobileNavigation.classList.remove(
                     "active"
@@ -161,6 +171,13 @@ const header =
 window.addEventListener(
     "scroll",
     function () {
+
+        if (!header) {
+
+            return;
+
+        }
+
 
         if (
             window.scrollY > 20
