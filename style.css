@@ -760,16 +760,6 @@ h2 {
     color: var(--white);
 }
 
-.footer-column .inactive-link {
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: #6f817b;
-    opacity: 0.75;
-    cursor: not-allowed;
-    user-select: none;
-    pointer-events: none;
-}
-
 .footer-column p {
     margin-bottom: 10px;
     font-size: 13px;
