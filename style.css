@@ -721,8 +721,8 @@ h2 {
 
 .footer-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 1.2fr 0.6fr;
-    gap: 55px;
+    grid-template-columns: 1.2fr 1fr 1fr 1.2fr 0.6fr;
+    gap: 40px;
 }
 
 .footer-logo {
@@ -758,6 +758,16 @@ h2 {
 
 .footer-column a:hover {
     color: var(--white);
+}
+
+.footer-column .inactive-link {
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #6f817b;
+    opacity: 0.75;
+    cursor: not-allowed;
+    user-select: none;
+    pointer-events: none;
 }
 
 .footer-column p {
